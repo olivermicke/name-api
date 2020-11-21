@@ -8,19 +8,21 @@ import {
   IsEnum,
   IsIn,
   IsNumber,
+  IsOptional,
   IsString,
   validate,
   ValidateNested,
 } from 'class-validator';
 import { plainToClass } from 'class-transformer';
 
-import { GetGuessedNameInformationRequestDTO } from './name.controller';
+import { IGetGuessedNameInformationRequestDTO } from './name.controller';
 import { CountryCode, COUNTRY_CODES } from './country-names';
 
 export interface IGetGuessedNameInformation {
+  name: string;
+  country_id?: CountryCode;
   age: GuessedAgeResponseDTO;
   gender: GuessedGenderResponseDTO;
-  name: string;
   nationality: GuessedNationalityResponseDTO;
 }
 
@@ -33,6 +35,10 @@ class GuessedAgeResponseDTO {
 
   @IsNumber()
   count: number;
+
+  @IsOptional()
+  @IsIn(COUNTRY_CODES)
+  country_id: CountryCode;
 }
 
 export enum GenderEnum {
@@ -52,6 +58,10 @@ class GuessedGenderResponseDTO {
 
   @IsNumber()
   count: number;
+
+  @IsOptional()
+  @IsIn(COUNTRY_CODES)
+  country_id: CountryCode;
 }
 
 class CountryDTO {
@@ -69,12 +79,36 @@ class GuessedNationalityResponseDTO {
   country: CountryDTO[];
 }
 
-async function fetchData<T>(url: string): Promise<T> {
+enum NameApiApplicationNamesEnum {
+  AGIFY = 'agify',
+  GENDERIZE = 'genderize',
+  NATIONALIZE = 'nationalize',
+}
+
+function urlBuilder(
+  application: 'agify' | 'genderize' | 'nationalize',
+  { name, country }: IGetGuessedNameInformationRequestDTO,
+): string {
+  let url = `https://api.${application}.io?name=${name}`;
+
+  if (country) {
+    url += `&country_id=${country}`;
+  }
+
+  return url;
+}
+
+async function fetchData<T>(
+  applicationName: NameApiApplicationNamesEnum,
+  requestDTO: IGetGuessedNameInformationRequestDTO,
+): Promise<T> {
+  const url = urlBuilder(applicationName, requestDTO);
+
   return axios
     .get(url)
     .then((response: AxiosResponse): T => response.data)
     .catch((error: AxiosError): never => {
-      console.log(error);
+      console.log(`Error while fetching from "${url}"`, error);
       throw new InternalServerErrorException();
     });
 }
@@ -96,21 +130,26 @@ async function validateDTO(
 @Injectable()
 export class NameApiClient {
   public async getGuessedNameInformation(
-    params: GetGuessedNameInformationRequestDTO,
+    requestDTO: IGetGuessedNameInformationRequestDTO,
   ): Promise<IGetGuessedNameInformation> {
     const [age, gender, nationality] = await Promise.all([
-      this.getGuessedAge(params),
-      this.getGuessedGender(params),
-      this.getGuessedNationality(params),
+      this.getGuessedAge(requestDTO),
+      this.getGuessedGender(requestDTO),
+      this.getGuessedNationality(requestDTO),
     ]);
 
-    return { age, gender, name: params.name, nationality };
+    return {
+      age,
+      gender,
+      name: age.name,
+      nationality,
+    };
   }
 
-  private async getGuessedAge({
-    name,
-  }: GetGuessedNameInformationRequestDTO): Promise<GuessedAgeResponseDTO> {
-    const data = await fetchData(`https://api.agify.io/?name=${name}`);
+  private async getGuessedAge(
+    requestDTO: IGetGuessedNameInformationRequestDTO,
+  ): Promise<GuessedAgeResponseDTO> {
+    const data = await fetchData(NameApiApplicationNamesEnum.AGIFY, requestDTO);
 
     const classData = plainToClass(GuessedAgeResponseDTO, data);
     await validateDTO(classData);
@@ -118,10 +157,13 @@ export class NameApiClient {
     return classData;
   }
 
-  private async getGuessedGender({
-    name,
-  }: GetGuessedNameInformationRequestDTO): Promise<GuessedGenderResponseDTO> {
-    const data = await fetchData(`https://api.genderize.io/?name=${name}`);
+  private async getGuessedGender(
+    requestDTO: IGetGuessedNameInformationRequestDTO,
+  ): Promise<GuessedGenderResponseDTO> {
+    const data = await fetchData(
+      NameApiApplicationNamesEnum.GENDERIZE,
+      requestDTO,
+    );
 
     const classData = plainToClass(GuessedGenderResponseDTO, data);
     await validateDTO(classData);
@@ -129,12 +171,13 @@ export class NameApiClient {
     return classData;
   }
 
-  private async getGuessedNationality({
-    name,
-  }: GetGuessedNameInformationRequestDTO): Promise<
-    GuessedNationalityResponseDTO
-  > {
-    const data = await fetchData(`https://api.nationalize.io/?name=${name}`);
+  private async getGuessedNationality(
+    requestDTO: IGetGuessedNameInformationRequestDTO,
+  ): Promise<GuessedNationalityResponseDTO> {
+    const data = await fetchData(
+      NameApiApplicationNamesEnum.NATIONALIZE,
+      requestDTO,
+    );
 
     const classData = plainToClass(GuessedNationalityResponseDTO, data);
     classData.country = plainToClass(CountryDTO, classData.country);

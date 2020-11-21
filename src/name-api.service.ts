@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 
 import {
-  GetGuessedNameInformationRequestDTO,
+  IGetGuessedNameInformationRequestDTO,
   IGetGuessedNameInformationResponseDTO,
 } from './name.controller';
 import { NameApiClient } from './name-api.client';
@@ -17,21 +17,25 @@ export class NameApiService {
   constructor(private readonly nameApiClient: NameApiClient) {}
 
   async getGuessedNameInformation(
-    params: GetGuessedNameInformationRequestDTO,
+    requestDTO: IGetGuessedNameInformationRequestDTO,
   ): Promise<IGetGuessedNameInformationResponseDTO> {
     const {
       age,
       gender,
       name,
       nationality,
-    } = await this.nameApiClient.getGuessedNameInformation(params);
+    } = await this.nameApiClient.getGuessedNameInformation(requestDTO);
 
     return {
       name,
-      age: age.age,
+      age: {
+        age: age.age,
+        country: CountryNamesEnum[age.country_id],
+      },
       gender: {
         gender: gender.gender,
         probability: probabilityToPercentage(gender.probability),
+        country: CountryNamesEnum[gender.country_id],
       },
       nationality: nationality.country.map((nation) => ({
         country: CountryNamesEnum[nation.country_id],

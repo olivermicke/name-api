@@ -1,22 +1,36 @@
-import { Controller, Get, Param } from '@nestjs/common';
-import { IsString } from 'class-validator';
+import { Controller, Get, Param, Query } from '@nestjs/common';
+import { IsIn, IsOptional, IsString } from 'class-validator';
 
 import { NameApiService } from './name-api.service';
 
-import { CountryNamesEnum } from './country-names';
+import { CountryCode, CountryNamesEnum, COUNTRY_CODES } from './country-names';
 import { GenderEnum } from './name-api.client';
 
-export class GetGuessedNameInformationRequestDTO {
+class GetGuessedNameInformationParams {
   @IsString()
   name: string;
 }
 
+class GetGuessedNameInformationQuery {
+  @IsOptional()
+  @IsIn(COUNTRY_CODES)
+  country?: CountryCode;
+}
+
+export interface IGetGuessedNameInformationRequestDTO
+  extends GetGuessedNameInformationParams,
+    GetGuessedNameInformationQuery {}
+
 export interface IGetGuessedNameInformationResponseDTO {
   name: string;
-  age: number;
+  age: {
+    age: number;
+    country?: CountryNamesEnum;
+  };
   gender: {
     gender: GenderEnum;
     probability: string;
+    country?: CountryNamesEnum;
   };
   nationality: {
     country: CountryNamesEnum;
@@ -30,10 +44,11 @@ export class NameController {
 
   @Get(':name')
   async getGuessedNameInformation(
-    @Param() params: GetGuessedNameInformationRequestDTO,
+    @Param() params: GetGuessedNameInformationParams,
+    @Query() query: GetGuessedNameInformationQuery,
   ): Promise<IGetGuessedNameInformationResponseDTO> {
     const guessedNameInformation = await this.nameApiService.getGuessedNameInformation(
-      params,
+      { ...params, ...query },
     );
 
     return guessedNameInformation;
