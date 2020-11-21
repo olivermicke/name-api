@@ -1,12 +1,11 @@
 import { Module } from '@nestjs/common';
 
 import { AgeController } from './age.controller';
-import { AgeApiClient } from './age-api-client';
 import { AgeApiService } from './age-api.service';
 
 @Module({
   imports: [],
   controllers: [AgeController],
-  providers: [AgeApiClient, AgeApiService],
+  providers: [AgeApiService],
 })
 export class AppModule {}
