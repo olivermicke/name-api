@@ -6,7 +6,7 @@ import {
 } from './name.controller';
 import { NameApiClient } from './name-api.client';
 
-import { COUNTRY_NAMES } from './country-names';
+import { CountryNamesEnum } from './country-names';
 
 function probabilityToPercentage(probability: number): string {
   return `${Math.round(probability * 100)}%`;
@@ -34,7 +34,7 @@ export class NameApiService {
         probability: probabilityToPercentage(gender.probability),
       },
       nationality: nationality.country.map((nation) => ({
-        country: COUNTRY_NAMES[nation.country_id],
+        country: CountryNamesEnum[nation.country_id],
         probability: probabilityToPercentage(nation.probability),
       })),
     };

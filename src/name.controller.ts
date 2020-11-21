@@ -3,7 +3,8 @@ import { IsString } from 'class-validator';
 
 import { NameApiService } from './name-api.service';
 
-import { CountryName } from './country-names';
+import { CountryNamesEnum } from './country-names';
+import { GenderEnum } from './name-api.client';
 
 export class GetGuessedNameInformationRequestDTO {
   @IsString()
@@ -14,11 +15,11 @@ export interface IGetGuessedNameInformationResponseDTO {
   name: string;
   age: number;
   gender: {
-    gender: 'male' | 'female';
+    gender: GenderEnum;
     probability: string;
   };
   nationality: {
-    country: CountryName;
+    country: CountryNamesEnum;
     probability: string;
   }[];
 }

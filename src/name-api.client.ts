@@ -4,11 +4,18 @@ import {
   ServiceUnavailableException,
 } from '@nestjs/common';
 import axios, { AxiosError, AxiosResponse } from 'axios';
+import {
+  IsEnum,
+  IsIn,
+  IsNumber,
+  IsString,
+  validate,
+  ValidateNested,
+} from 'class-validator';
+import { plainToClass } from 'class-transformer';
 
 import { GetGuessedNameInformationRequestDTO } from './name.controller';
-import { CountryCode } from './country-names';
-import { IsNumber, IsString, validate, ValidateNested } from 'class-validator';
-import { plainToClass } from 'class-transformer';
+import { CountryCode, COUNTRY_CODES } from './country-names';
 
 export interface IGetGuessedNameInformation {
   age: GuessedAgeResponseDTO;
@@ -28,12 +35,17 @@ class GuessedAgeResponseDTO {
   count: number;
 }
 
+export enum GenderEnum {
+  MALE = 'male',
+  FEMALE = 'female',
+}
+
 class GuessedGenderResponseDTO {
   @IsString()
   name: string;
 
-  @IsString()
-  gender: 'male' | 'female';
+  @IsEnum(GenderEnum)
+  gender: GenderEnum;
 
   @IsNumber()
   probability: number;
@@ -43,7 +55,7 @@ class GuessedGenderResponseDTO {
 }
 
 class CountryDTO {
-  @IsString()
+  @IsIn(COUNTRY_CODES)
   country_id: CountryCode;
 
   @IsNumber()
