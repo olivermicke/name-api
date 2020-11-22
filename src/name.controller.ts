@@ -1,4 +1,12 @@
-import { Controller, Get, Logger, Param, Query } from '@nestjs/common';
+import {
+  CacheInterceptor,
+  Controller,
+  Get,
+  Logger,
+  Param,
+  Query,
+  UseInterceptors,
+} from '@nestjs/common';
 import { IsIn, IsOptional, IsString } from 'class-validator';
 
 import { NameApiService } from './name-api.service';
@@ -39,6 +47,7 @@ export interface IGetGuessedNameInformationResponseDTO {
 }
 
 @Controller()
+@UseInterceptors(CacheInterceptor)
 export class NameController {
   constructor(
     private readonly nameApiService: NameApiService,
