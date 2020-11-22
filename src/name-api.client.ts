@@ -1,6 +1,7 @@
 import {
   Injectable,
   InternalServerErrorException,
+  Logger,
   ServiceUnavailableException,
 } from '@nestjs/common';
 import axios, { AxiosError, AxiosResponse } from 'axios';
@@ -85,50 +86,10 @@ enum NameApiApplicationNamesEnum {
   NATIONALIZE = 'nationalize',
 }
 
-function urlBuilder(
-  application: 'agify' | 'genderize' | 'nationalize',
-  { name, country }: IGetGuessedNameInformationRequestDTO,
-): string {
-  let url = `https://api.${application}.io?name=${name}`;
-
-  if (country) {
-    url += `&country_id=${country}`;
-  }
-
-  return url;
-}
-
-async function fetchData<T>(
-  applicationName: NameApiApplicationNamesEnum,
-  requestDTO: IGetGuessedNameInformationRequestDTO,
-): Promise<T> {
-  const url = urlBuilder(applicationName, requestDTO);
-
-  return axios
-    .get(url)
-    .then((response: AxiosResponse): T => response.data)
-    .catch((error: AxiosError): never => {
-      console.log(`Error while fetching from "${url}"`, error);
-      throw new InternalServerErrorException();
-    });
-}
-
-async function validateDTO(
-  dto:
-    | GuessedAgeResponseDTO
-    | GuessedGenderResponseDTO
-    | GuessedNationalityResponseDTO,
-) {
-  const validationErrors = await validate(dto);
-
-  if (validationErrors.length > 0) {
-    console.log(validationErrors);
-    throw new ServiceUnavailableException();
-  }
-}
-
 @Injectable()
 export class NameApiClient {
+  constructor(private readonly logger: Logger) {}
+
   public async getGuessedNameInformation(
     requestDTO: IGetGuessedNameInformationRequestDTO,
   ): Promise<IGetGuessedNameInformation> {
@@ -149,10 +110,13 @@ export class NameApiClient {
   private async getGuessedAge(
     requestDTO: IGetGuessedNameInformationRequestDTO,
   ): Promise<GuessedAgeResponseDTO> {
-    const data = await fetchData(NameApiApplicationNamesEnum.AGIFY, requestDTO);
+    const data = await this.fetchData(
+      NameApiApplicationNamesEnum.AGIFY,
+      requestDTO,
+    );
 
     const classData = plainToClass(GuessedAgeResponseDTO, data);
-    await validateDTO(classData);
+    await this.validateDTO(classData);
 
     return classData;
   }
@@ -160,13 +124,13 @@ export class NameApiClient {
   private async getGuessedGender(
     requestDTO: IGetGuessedNameInformationRequestDTO,
   ): Promise<GuessedGenderResponseDTO> {
-    const data = await fetchData(
+    const data = await this.fetchData(
       NameApiApplicationNamesEnum.GENDERIZE,
       requestDTO,
     );
 
     const classData = plainToClass(GuessedGenderResponseDTO, data);
-    await validateDTO(classData);
+    await this.validateDTO(classData);
 
     return classData;
   }
@@ -174,15 +138,62 @@ export class NameApiClient {
   private async getGuessedNationality(
     requestDTO: IGetGuessedNameInformationRequestDTO,
   ): Promise<GuessedNationalityResponseDTO> {
-    const data = await fetchData(
+    const data = await this.fetchData(
       NameApiApplicationNamesEnum.NATIONALIZE,
       requestDTO,
     );
 
     const classData = plainToClass(GuessedNationalityResponseDTO, data);
     classData.country = plainToClass(CountryDTO, classData.country);
-    await validateDTO(classData);
+    await this.validateDTO(classData);
 
     return classData;
+  }
+
+  private async fetchData<T>(
+    applicationName: NameApiApplicationNamesEnum,
+    requestDTO: IGetGuessedNameInformationRequestDTO,
+  ): Promise<T> {
+    const url = this.urlBuilder(applicationName, requestDTO);
+
+    this.logger.log(`executing GET request on external endpoint ${url}`);
+
+    return axios
+      .get(url)
+      .then((response: AxiosResponse): T => response.data)
+      .catch((error: AxiosError): never => {
+        this.logger.error(`Error while fetching from "${url}"`, String(error));
+        throw new InternalServerErrorException();
+      });
+  }
+
+  private urlBuilder(
+    application: 'agify' | 'genderize' | 'nationalize',
+    { name, country }: IGetGuessedNameInformationRequestDTO,
+  ): string {
+    let url = `https://api.${application}.io?name=${name}`;
+
+    if (country) {
+      url += `&country_id=${country}`;
+    }
+
+    return url;
+  }
+
+  private async validateDTO(
+    dto:
+      | GuessedAgeResponseDTO
+      | GuessedGenderResponseDTO
+      | GuessedNationalityResponseDTO,
+  ) {
+    const validationErrors = await validate(dto);
+
+    if (validationErrors.length > 0) {
+      this.logger.log(
+        `Encountered validation error(s) while validating dto ${dto}`,
+        validationErrors.join(''),
+      );
+      throw new ServiceUnavailableException();
+    }
   }
 }

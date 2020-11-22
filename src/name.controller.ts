@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Query } from '@nestjs/common';
+import { Controller, Get, Logger, Param, Query } from '@nestjs/common';
 import { IsIn, IsOptional, IsString } from 'class-validator';
 
 import { NameApiService } from './name-api.service';
@@ -40,13 +40,20 @@ export interface IGetGuessedNameInformationResponseDTO {
 
 @Controller()
 export class NameController {
-  constructor(private readonly nameApiService: NameApiService) {}
+  constructor(
+    private readonly nameApiService: NameApiService,
+    private readonly logger: Logger,
+  ) {}
 
   @Get(':name')
   async getGuessedNameInformation(
     @Param() params: GetGuessedNameInformationParams,
     @Query() query: GetGuessedNameInformationQuery,
   ): Promise<IGetGuessedNameInformationResponseDTO> {
+    this.logger.log(
+      `called ":name" with "name=${params.name}" and "country=${query.country}"`,
+    );
+
     const guessedNameInformation = await this.nameApiService.getGuessedNameInformation(
       { ...params, ...query },
     );
