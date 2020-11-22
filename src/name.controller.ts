@@ -7,7 +7,7 @@ import {
   Query,
   UseInterceptors,
 } from '@nestjs/common';
-import { IsIn, IsOptional, IsString } from 'class-validator';
+import { IsIn, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
 import { NameApiService } from './name-api.service';
 
@@ -16,6 +16,7 @@ import { GenderEnum } from './name-api.client';
 
 class GetGuessedNameInformationParams {
   @IsString()
+  @IsNotEmpty()
   name: string;
 }
 
