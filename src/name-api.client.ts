@@ -1,4 +1,5 @@
 import {
+  HttpService,
   Injectable,
   InternalServerErrorException,
   Logger,
@@ -88,7 +89,10 @@ enum NameApiApplicationNamesEnum {
 
 @Injectable()
 export class NameApiClient {
-  constructor(private readonly logger: Logger) {}
+  constructor(
+    private readonly logger: Logger,
+    private readonly httpService: HttpService,
+  ) {}
 
   public async getGuessedNameInformation(
     requestDTO: IGetGuessedNameInformationRequestDTO,
@@ -158,8 +162,9 @@ export class NameApiClient {
 
     this.logger.log(`executing GET request on external endpoint ${url}`);
 
-    return axios
+    return this.httpService
       .get(url)
+      .toPromise()
       .then((response: AxiosResponse): T => response.data)
       .catch((error: AxiosError): never => {
         this.logger.error(`Error while fetching from "${url}"`, String(error));
