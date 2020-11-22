@@ -32,6 +32,7 @@ class GuessedAgeResponseDTO {
   @IsString()
   name: string;
 
+  @IsOptional()
   @IsNumber()
   age: number;
 
@@ -52,6 +53,7 @@ class GuessedGenderResponseDTO {
   @IsString()
   name: string;
 
+  @IsOptional()
   @IsEnum(GenderEnum)
   gender: GenderEnum;
 
