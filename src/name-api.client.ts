@@ -1,11 +1,10 @@
+import { HttpService } from '@nestjs/axios';
 import {
-  HttpService,
   Injectable,
   InternalServerErrorException,
   Logger,
   ServiceUnavailableException,
 } from '@nestjs/common';
-import { AxiosError, AxiosResponse } from 'axios';
 import {
   IsEnum,
   IsIn,
@@ -167,8 +166,8 @@ export class NameApiClient {
     return this.httpService
       .get(url)
       .toPromise()
-      .then((response: AxiosResponse): T => response.data)
-      .catch((error: AxiosError): never => {
+      .then((response): T => response.data)
+      .catch((error): never => {
         this.logger.error(`Error while fetching from "${url}"`, String(error));
         throw new InternalServerErrorException();
       });
